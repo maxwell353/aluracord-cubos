@@ -1,38 +1,7 @@
 import appConfig from '../config.json';
 import { Box, Button, Text, TextField, Image } from '@skynexui/components';
-
-function GlobalStyle() {
-    return (
-        <style global jsx>{`
-        * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-                list-style: none;
-            }
-            @import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&display=swap');
-            body {
-                font-family: 'Mochiy Pop P One', sans-serif;
-            }
-            /* App fit Height */ 
-            html, body, #__next {
-                min-height: 100vh;
-                display: flex;
-                flex: 1;
-            }
-            #__next {
-                flex: 1;
-            }
-            #__next > * {
-                flex: 1;
-            }
-            /* ./App fit Height */ 
-            a {
-                text-decoration: none;
-            }
-        `}</style>
-    );
-}
+import React from 'react';
+import { useRouter } from 'next/router';
 
 function Title(props) {
     const Tag = props.tag || 'h1';
@@ -52,11 +21,13 @@ function Title(props) {
 
 
 export default function PaginaInicial() {
-    const username = 'Maxwell353';
+    // const username = 'Maxwell353';
+    const [username, setUsername] = React.useState('Maxwell353');
+    const userPadrao = "Maxwell353";
+    const roteamento = useRouter();
 
     return (
         <>
-            <GlobalStyle />
             {/* box */}
             <Box
                 styleSheet={{
@@ -84,6 +55,12 @@ export default function PaginaInicial() {
                     {/* formulário */}
                     <Box
                         as="form"
+                        onSubmit={function (infosDoEvento) {
+                            infosDoEvento.preventDefault();
+                            console.log('Alguém submeteu o form');
+                            roteamento.push('/chat');
+                            // window.location.href = '/chat';
+                        }}
                         styleSheet={{
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                             width: { xs: '100%', sm: '50%' }, textAlign: 'center', marginBottom: '32px',
@@ -94,27 +71,37 @@ export default function PaginaInicial() {
                             {appConfig.name}
                         </Text>
 
+                       {/* <input
+                            type="text"
+                            value={username}
+                            onChange={function (event) {
+                                console.log('usuario digitou', event.target.value);
+                                // Onde ta o valor?
+                                const valor = event.target.value;
+                                // Trocar o valor da variavel
+                                // através do React e avise quem precisa
+                                setUsername(valor);
+                            }}
+                        /> */}
                         <TextField
-                            fullWidth
-                            textFiealdColors={{
-                                neutral: {
-                                    textColor: appConfig.theme.colors.neutrals[200],
-                                    mainColor: appConfig.theme.colors.neutrals[900],
-                                    mainColorHighlight: appConfig.theme.colors.primary[500],
-                                    backgroundColor: appConfig.theme.colors.neutrals[800],
-                                }, 
-                            }}
-                            styleSheet={{
-                                marginBottom: '10px',
-                                border: '2px solid #2d2d2d',
-                                focus: {
-                                    boxShadow: '0 0 0 0',
-                                    outline: '0',
-                                },
-                                hover: {
-                                    border: '2px solid #2d2d2d',
-                                }
-                            }}
+                        value={username}
+                        onChange={function (event) {
+                            console.log('usuario digitou', event.target.value);
+                            // Onde ta o valor?
+                            const valor = event.target.value;
+                            // Trocar o valor da variavel
+                            // através do React e avise quem precisa
+                            setUsername(valor);
+                        }}
+                        fullWidth
+                        textFieldColors={{
+                            neutral: {
+                            textColor: appConfig.theme.colors.neutrals[200],
+                            mainColor: appConfig.theme.colors.neutrals[900],
+                            mainColorHighlight: appConfig.theme.colors.primary[500],
+                            backgroundColor: appConfig.theme.colors.neutrals[800],
+                            },
+                        }}
                         />
                         <Button
                             type='submit'
@@ -155,11 +142,11 @@ export default function PaginaInicial() {
                                 borderRadius: '50%',
                                 marginBottom: '16px',
                             }}
-                            src={`https://github.com/${username}.png`}
+                            src={`https://github.com/${username.length > 2 ? username : userPadrao}.png`}
                         />
 
                         <a 
-                            href={`https://github.com/${username}`}
+                            href={`https://github.com/${username.length > 2 ? username : userPadrao}`}
                             target={'_blank'}
                         >
                             <Text
@@ -175,7 +162,8 @@ export default function PaginaInicial() {
                                     }
                                 }}
                             >
-                                {username}  
+                                {username.length > 2 ? username : userPadrao}  
+                                
                             </Text>
                         </a>
 
