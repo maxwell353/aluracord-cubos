@@ -2,12 +2,29 @@ import { Box, Text, TextField, Image, Button } from '@skynexui/components';
 import React from 'react';
 import appConfig from '../config.json';
 import { useRouter } from 'next/router';
+import { createClient } from '@supabase/supabase-js'
+import ContentLoader from 'react-content-loader'
+
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzMyNjE0NiwiZXhwIjoxOTU4OTAyMTQ2fQ.eX-VwNOnIh5rV0e2LRNEZlMg3wmBqOp7ftLR2exLG80';
+const SUPABASE_URL = 'https://yclcqqfmovefywfmxztl.supabase.co';
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function ChatPage() {
     const [mensagem, setMensagem] = React.useState('');
     const [listaDeMensagens, setListaDeMensagens] = React.useState([]);
     const roteamento = useRouter();
     const username = roteamento.query.user;
+
+    React.useEffect(() => {
+        supabaseClient
+          .from('mensagens')
+          .select('*')
+          .order('id', { ascending: false })
+          .then(({ data }) => {
+            console.log('Dados da consulta:', data);
+            setListaDeMensagens(data);
+          });
+      }, []);
 
     /*
     // Usuário
@@ -22,17 +39,24 @@ export default function ChatPage() {
     */
     function handleNovaMensagem(novaMensagem) {
         const mensagem = {
-            id: listaDeMensagens.length + 1,
+            // id: listaDeMensagens.length + 1,
             de: username,
             texto: novaMensagem,
         };
 
-        if (mensagem.length !== null) {
+        supabaseClient
+        .from('mensagens')
+        .insert([
+            // Tem que ser um objeto com os MESMOS CAMPOS que você escreveu no supabase
+            mensagem
+        ])
+        .then(({ data }) => {
+            console.log('Criando mensagem: ', data);
             setListaDeMensagens([
-                mensagem,
-                ...listaDeMensagens,
+            data[0],
+            ...listaDeMensagens,
             ]);
-        }
+        });
         setMensagem('');
     }
 
@@ -40,6 +64,18 @@ export default function ChatPage() {
         const id = Number(event.target.dataset.id)
         const listaDeMensagemFiltrada = listaDeMensagens.filter((mensagemFiltrada) => {
             return mensagemFiltrada.id != id
+        });
+
+        supabaseClient
+        .from('mensagens')
+        .delete()
+        .match({ id: id })
+        .then(({ data }) => {
+            console.log('mensagem deletada: ', data);
+            // setListaDeMensagens([
+            // data[0],
+            // ...listaDeMensagens,
+            // ]);
         });
 
         // Setando a nova lista filtrada, com uma mensagem a menos
@@ -89,7 +125,13 @@ export default function ChatPage() {
                         padding: '16px',
                     }}
                 >
-                    <MessageList user={username} mensagens={listaDeMensagens} delMensagem={handleDeletarMensagem} />
+                    {
+                        listaDeMensagens.length <= 0 ?
+                        <LoadMensagens />
+                        :
+                        <MessageList mensagens={listaDeMensagens} delMensagem={handleDeletarMensagem} />
+                    }
+                    
                     {/* {listaDeMensagens.map((mensagemAtual) => {
                         return (
                             <li key={mensagemAtual.id}>
@@ -173,7 +215,6 @@ function Header() {
 
 function MessageList(props) {
     const handleDeletarMensagem = props.delMensagem;
-    const username = props.user;
     return (
         <Box
             tag="ul"
@@ -213,7 +254,7 @@ function MessageList(props) {
                                     display: 'inline-block',
                                     marginRight: '8px',
                                 }}
-                                src={`https://github.com/${username}.png`}
+                                src={`https://github.com/${mensagem.de}.png`}
                             />
                             <Text tag="strong">
                                 {mensagem.de}
@@ -260,5 +301,28 @@ function MessageList(props) {
                 );
             })}
         </Box>
+    )
+}
+
+function LoadMensagens(props) {
+    return (
+        <ContentLoader
+            height={1200}
+            width={1060}
+            speed={1}
+            backgroundColor={'#444'}
+            foregroundColor={'#999'}
+            {...props}
+        >
+            <rect x="103" y="12" rx="3" ry="3" width="123" height="7" />
+            <rect x="102" y="152" rx="3" ry="3" width="171" height="6" />
+            <circle cx="44" cy="42" r="38" />
+            <circle cx="44" cy="147" r="38" />
+            <circle cx="44" cy="251" r="38" />
+            <rect x="105" y="117" rx="3" ry="3" width="123" height="7" />
+            <rect x="104" y="222" rx="3" ry="3" width="123" height="7" />
+            <rect x="105" y="48" rx="3" ry="3" width="171" height="6" />
+            <rect x="104" y="257" rx="3" ry="3" width="171" height="6" />
+        </ContentLoader>
     )
 }
