@@ -2,12 +2,20 @@ import { Box, Text, TextField, Image, Button } from '@skynexui/components';
 import React from 'react';
 import appConfig from '../config.json';
 import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js'
-import ContentLoader from 'react-content-loader'
+import { createClient } from '@supabase/supabase-js';
+import ContentLoader from 'react-content-loader';
+import { ButtonSendSticker } from '../src/components/ButtonSendSticker';
 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzMyNjE0NiwiZXhwIjoxOTU4OTAyMTQ2fQ.eX-VwNOnIh5rV0e2LRNEZlMg3wmBqOp7ftLR2exLG80';
 const SUPABASE_URL = 'https://yclcqqfmovefywfmxztl.supabase.co';
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function escutarMensagemTempoReal(adicionaMensagem){
+    return supabaseClient
+      .from('mensagens')
+      .on('*', (resposta) => adicionaMensagem(resposta))
+      .subscribe();
+  }
 
 export default function ChatPage() {
     const [mensagem, setMensagem] = React.useState('');
@@ -17,13 +25,34 @@ export default function ChatPage() {
 
     React.useEffect(() => {
         supabaseClient
-          .from('mensagens')
-          .select('*')
-          .order('id', { ascending: false })
-          .then(({ data }) => {
-            console.log('Dados da consulta:', data);
+        .from('mensagens')
+        .select('*')
+        .order('id', { ascending: false })
+        .then(({ data }) => {
             setListaDeMensagens(data);
-          });
+        });
+
+        escutarMensagemTempoReal((novaMensagem) => {
+            if(novaMensagem.eventType === 'INSERT'){
+                setListaDeMensagens((valorAtualDaLista) => {
+                    return [
+                        novaMensagem.new,
+                        ...valorAtualDaLista,
+                    ]
+                });
+            }
+      
+            if(novaMensagem.eventType === 'DELETE'){
+                setListaDeMensagens((valorAtualDaLista) => {
+                const lista = valorAtualDaLista
+                  .filter((mensagem) => { 
+                    if (mensagem.id != novaMensagem.old.id) return mensagem 
+                  });
+                return [...lista];
+              });
+            }
+        });
+
       }, []);
 
     /*
@@ -50,13 +79,7 @@ export default function ChatPage() {
             // Tem que ser um objeto com os MESMOS CAMPOS que você escreveu no supabase
             mensagem
         ])
-        .then(({ data }) => {
-            console.log('Criando mensagem: ', data);
-            setListaDeMensagens([
-            data[0],
-            ...listaDeMensagens,
-            ]);
-        });
+        .then(({ data }) => data);
         setMensagem('');
     }
 
@@ -70,13 +93,7 @@ export default function ChatPage() {
         .from('mensagens')
         .delete()
         .match({ id: id })
-        .then(({ data }) => {
-            console.log('mensagem deletada: ', data);
-            // setListaDeMensagens([
-            // data[0],
-            // ...listaDeMensagens,
-            // ]);
-        });
+        .then(({ data }) => data);
 
         // Setando a nova lista filtrada, com uma mensagem a menos
         setListaDeMensagens(listaDeMensagemFiltrada)
@@ -172,22 +189,41 @@ export default function ChatPage() {
                                 color: appConfig.theme.colors.neutrals[200],
                             }}
                         />
+                        <ButtonSendSticker onStickerClick={(sticker) => handleNovaMensagem(':sticker: ' + sticker)} />
+                        <Box
+                        styleSheet={{
+                            position: 'relative',
+                        }}
+                        >
                         <Button
-                            type='submit'
-                            label='Enviar'
-                            buttonColors={{
-                                contrastColor: appConfig.theme.colors.custom.white,
-                                mainColor: appConfig.theme.colors.neutrals[900],
-                                mainColorLight: appConfig.theme.colors.primary[900],
-                                mainColorStrong: appConfig.theme.colors.neutrals[900],
-                            }}
                             styleSheet={{
-                                border: '1px solid #2d2d2d',
-                                hover: {
-                                    backgroundColor: appConfig.theme.colors.custom.grey1,
-                                }
+                            borderRadius: '50%',
+                            padding: '0 3px 0 0',
+                            minWidth: '48px',
+                            minHeight: '48px',
+                            fontSize: '20px',
+                            marginBottom: '8px',
+                            marginLeft: '8px',
+                            lineHeight: '0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'rgba(154, 165, 177, 0.2)',
+                            hover: {
+                                filter: 'grayscale(0)',
+                            }
                             }}
+                            buttonColors={{
+                            contrastColor: appConfig.theme.colors.neutrals["000"],
+                            mainColor: '#7289D9',
+                            mainColorLight: '#4E6AD0',
+                            mainColorStrong: '#4E6AD0',
+                            }}
+                            iconName="FaLocationArrow"
+                            type='submit'
                         />
+                
+                        </Box>
                     </Box>
                 </Box>
             </Box>
@@ -296,7 +332,19 @@ function MessageList(props) {
                                 X
                             </Text>
                         </Box>
-                        {mensagem.texto}
+                        {mensagem.texto && (
+                            mensagem.texto.startsWith(':sticker:')
+                            ? (
+                                <Image 
+                                src={mensagem.texto.replace(':sticker:', '')} 
+                                styleSheet={{
+                                    maxWidth: {xs: '50%', md: '25%'}
+                                }}
+                                />
+                            )
+                            : mensagem.texto
+                        )}
+                            
                     </Text>
                 );
             })}
